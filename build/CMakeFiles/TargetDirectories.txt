@@ -1,0 +1,3 @@
+/Users/pulkitsingh/velox/build/CMakeFiles/velox.dir
+/Users/pulkitsingh/velox/build/CMakeFiles/edit_cache.dir
+/Users/pulkitsingh/velox/build/CMakeFiles/rebuild_cache.dir
