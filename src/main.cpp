@@ -1,20 +1,18 @@
 #include <iostream>
 #include "order.hpp"
 #include "allocator.hpp"
+#include "book.hpp"
 
 int main() {
-    PoolAllocator<Order, 1000> pool;
+    OrderBook book;
 
-    Order* o = pool.allocate();
-    new (o) Order(1, 100.5, 10, true);
+    book.addOrder(100.50, 500, true);
+    book.addOrder(100.25, 200, true);
+    book.addOrder(101.00, 300, false);
+    book.addOrder(101.25, 100, false);
+    book.print();
 
-    std::cout << "ID: " << o->id << "\n";
-    std::cout << "Price: " << o->price << "\n";
-    std::cout << "Quantity: " << o->quantity << "\n";
-    std::cout << "Buy: " << o->is_buy << "\n";
-
-    o->~Order();
-    pool.deallocate(o);
-
-    std::cout << "Deallocated successfully\n";
+    std::cout << "\nAdding matching order...\n";
+    book.addOrder(100.50, 300, false);
+    book.print();
 }
