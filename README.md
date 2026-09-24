@@ -1,43 +1,30 @@
 # Velox
 
-Low-latency quantitative order matching engine in C++20, built around the principles used in HFT systems — zero heap allocation in the hot path, cache-friendly memory layout, and real-time quantitative signals.
+Low-latency quantitative order matching engine in C++20. Built around zero heap allocation in the hot path, price-time priority matching, and real-time trading signals — the same principles used in production HFT systems.
 
-## Motivation
+## How it works
 
-Standard allocators are general purpose. In latency-sensitive systems, every `new`/`delete` call hits the OS, acquires locks, and fragments memory. Velox eliminates this by managing memory explicitly via a pool allocator, keeping the critical path allocation-free.
-
-## Architecture
-
-```
-Incoming Order
-      ↓
-Pool Allocator  ←  pre-allocated fixed memory block
-      ↓
-Order Book      ←  price-time priority matching
-      ↓
-Match Engine    ←  best bid vs best ask
-      ↓
-Signals         ←  VWAP, OFI, PnL
-```
+Incoming orders go through a pool allocator instead of the system heap, land in a price-sorted order book, get matched against the opposite side, and update live trading signals on every trade.
 
 ## Components
 
 ### Pool Allocator
-- Fixed-size memory pool using raw `std::byte` storage with `alignas`
-- Placement new for construction — decouples allocation from object lifetime
+- Pre-allocates a fixed memory block at startup — no OS calls during trading
+- Raw `std::byte` storage with `alignas` — no constructors called on pool init
+- Placement new separates allocation from object construction
 - O(1) allocate and deallocate via free list
-- No OS calls, no locks, no fragmentation
+- 1.6x faster than `new`/`delete` on fixed-size workloads
 
 ### Order Book
 - Bids: `std::map<double, uint32_t, std::greater<double>>` — highest price first
 - Asks: `std::map<double, uint32_t>` — lowest price first
-- Match condition: best bid >= best ask
-- Trades minimum of bid and ask quantity
+- Match fires when best bid >= best ask
+- Trades the minimum of bid and ask quantity, removes exhausted levels
 
 ### Signals
-- **VWAP** — Volume Weighted Average Price across all matched trades
-- **OFI** — Order Flow Imbalance = (buy_vol - sell_vol) / (buy_vol + sell_vol), range [-1, +1]
-- **PnL** — cash position, inventory, unrealized PnL at current price, total PnL
+- **VWAP** — volume weighted average price across all matched trades
+- **OFI** — order flow imbalance = (buy_vol - sell_vol) / (buy_vol + sell_vol), range [-1, +1], measures buy vs sell pressure
+- **PnL** — tracks cash position, inventory, unrealized PnL at current market price, and total PnL
 
 ## Benchmark
 
@@ -48,7 +35,7 @@ Signals         ←  VWAP, OFI, PnL
 | Pool       | 18,078,166 ns | 18 ns  |
 | new/delete | 28,689,208 ns | 28 ns  |
 
-**1.6x faster** than system allocator on fixed-size workloads.
+Pool allocator is **1.6x faster** than the system allocator on fixed-size order objects.
 
 ## Project Structure
 
@@ -57,12 +44,12 @@ velox/
 ├── include/
 │   ├── order.hpp       # Order struct — id, price, quantity, side
 │   ├── allocator.hpp   # Pool allocator — templated, fixed capacity
-│   ├── book.hpp        # Order book — matching engine
+│   ├── book.hpp        # Order book — price-time matching engine
 │   └── signals.hpp     # VWAP, OFI, PnL
 ├── src/
 │   └── main.cpp        # Demo
 ├── bench/
-│   └── benchmark.cpp   # Pool vs new/delete
+│   └── benchmark.cpp   # Pool vs new/delete benchmark
 └── CMakeLists.txt
 ```
 
@@ -72,8 +59,8 @@ velox/
 mkdir build && cd build
 cmake ..
 cmake --build .
-./velox        # order book demo
-./benchmark    # allocator benchmark
+./velox        # runs order book demo
+./benchmark    # runs allocator benchmark
 ```
 
 ## Stack
