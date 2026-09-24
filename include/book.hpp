@@ -1,17 +1,19 @@
 #pragma once
 
 #include <map>
+#include <iostream>
 #include <cstdint>
 #include "order.hpp"
 #include "allocator.hpp"
+#include "signals.hpp"
 
 class OrderBook {
 private:
-    // price -> total quantity
-    std::map<double, uint32_t, std::greater<double>> bids; // highest first
-    std::map<double, uint32_t> asks;                        // lowest first
+    std::map<double, uint32_t, std::greater<double>> bids;
+    std::map<double, uint32_t> asks;
 
     PoolAllocator<Order, 10000> pool;
+    Signals signals;
     uint64_t next_id = 1;
 
 public:
@@ -37,6 +39,8 @@ public:
                 uint32_t traded = std::min(best_bid->second, best_ask->second);
                 std::cout << "MATCH: " << traded << " @ " << best_ask->first << "\n";
 
+                signals.onTrade(best_ask->first, traded, true);
+
                 best_bid->second -= traded;
                 best_ask->second -= traded;
 
@@ -57,6 +61,7 @@ public:
         std::cout << "BUY:\n";
         for (auto& [price, qty] : bids)
             std::cout << "  " << price << " x " << qty << "\n";
+        signals.print();
         std::cout << "==================\n";
     }
 };
