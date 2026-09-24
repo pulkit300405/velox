@@ -10,9 +10,9 @@ int main() {
     book.addOrder(100.25, 200, true);
     book.addOrder(101.00, 300, false);
     book.addOrder(101.25, 100, false);
-    book.print();
+    book.print(101.00);
 
     std::cout << "\nAdding matching order...\n";
     book.addOrder(100.50, 300, false);
-    book.print();
+    book.print(100.50);
 }

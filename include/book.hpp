@@ -52,7 +52,7 @@ public:
         }
     }
 
-    void print() {
+    void print(double current_price = 0.0) {
         std::cout << "\n=== ORDER BOOK ===\n";
         std::cout << "SELL:\n";
         for (auto it = asks.rbegin(); it != asks.rend(); ++it)
@@ -61,7 +61,7 @@ public:
         std::cout << "BUY:\n";
         for (auto& [price, qty] : bids)
             std::cout << "  " << price << " x " << qty << "\n";
-        signals.print();
+        signals.print(current_price);
         std::cout << "==================\n";
     }
 };
